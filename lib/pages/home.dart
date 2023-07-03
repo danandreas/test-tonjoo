@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_andreas/pages/user_create.dart';
 import 'package:flutter_andreas/pages/user_list.dart';
 import 'package:flutter_andreas/pages/web_view.dart';
 // import 'package:http/http.dart' as http;
@@ -21,7 +22,7 @@ class _HomePageState extends State<HomePage> {
       child: UserListPage(),
     ),
     const Center(
-      child: Text("ADD NEW"),
+      child: UserCreatePage(),
     ),
     const Center(
       child: WebviewPage(),

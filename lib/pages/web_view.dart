@@ -20,7 +20,6 @@ class _WebviewPageState extends State<WebviewPage> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
-            // Update loading bar.
           },
           onPageStarted: (String url) {},
           onPageFinished: (String url) {},

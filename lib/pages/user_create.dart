@@ -1,59 +1,67 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:convert';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/url.dart';
 
 
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+class UserCreatePage extends StatefulWidget {
+  const UserCreatePage({Key? key}) : super(key: key);
 
   @override
-  LoginPageState createState() => LoginPageState();
+  UserCreatePageState createState() => UserCreatePageState();
 }
 
-class LoginPageState extends State<LoginPage> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  late String username;
-  late String password;
+class UserCreatePageState extends State<UserCreatePage> {
 
-  bool _isPasswordHidden = true;
+  final List data = [
+    {
+      "title": "Male",
+      "data": "Male",
+    },
+    {
+      "title": "Female",
+      "data": "Female",
+    },
+  ];
+
+  late String? dataAwal = '';
+
+  @override
+  void initState() {
+    dataAwal = data[0]["data"];
+    super.initState();
+  }
+  
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late String? username = '';
+  late String? last_name = '';
+  late String? email = '';
+  late String? gender = '';
   bool _isLoading = false;
 
   Future<void> submit() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
+    // ignore: avoid_print
+    print(username);
     _isLoading = true;
     const url = '${Api.baseUrl}login';
-    Map data = {
-      'user': username, 'password': password
-    };
-    var body = json.encode(data);
-
-    var response = await http.post(Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: body
+    final response = await http.post(
+      Uri.parse(url),
+      body: {'user': username, 'last_name': last_name, 'email': email, 'gender': gender},
     );
-      if (response.statusCode == 200) {
-        const snackbar = SnackBar(
-          content: Text('Login successfully!'),
-          duration: Duration(seconds: 1),
-          backgroundColor: Colors.greenAccent,
-        );
-              // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(snackbar);
+    // ignore: avoid_print
+    print(response);
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      if (responseData['success'] == 1) {
         // ignore: use_build_context_synchronously
-          Navigator.pushNamed(context, '/home');
-      } else {
-        const snackbar = SnackBar(
-          content: Text('Login failed!'),
-          duration: Duration(seconds: 1),
-          backgroundColor: Colors.redAccent,
-        );
-              // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(snackbar);
+        Navigator.pushNamed(context, '/home');
       }
+    } else {
+      // ignore: avoid_print
+      print("Gagal");
     }
   }
 
@@ -61,6 +69,10 @@ class LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Create User"),
+        backgroundColor: Colors.orange.shade900,
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -68,37 +80,6 @@ class LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const SizedBox(
-                height: 90,
-              ),
-              Image.asset(
-                'assets/images/logo.png',
-                width: 80,
-                height: 80
-              ),
-              const SizedBox(
-                height: 90,
-              ),
-              const Center(
-                child: Text(
-                  "Login",
-                  style: TextStyle(
-                    color: Color.fromARGB(255, 240, 89, 8),
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold),
-                )
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              const Center(
-                child: Text(
-                  "Silahkan login gunakan username dan password",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12),
-                )
-              ),
               const SizedBox(
                 height: 20,
               ),
@@ -136,12 +117,12 @@ class LoginPageState extends State<LoginPage> {
                                           border: InputBorder.none,
                                           prefixIcon: Icon(Icons.person,
                                               color: Colors.grey.shade300),
-                                          hintText: "username",
+                                          hintText: "First Name",
                                           hintStyle:
                                               TextStyle(color: Colors.grey.shade300),
                                         ),
                                         validator: (value) => value == null
-                                            ? "username wajib diisi"
+                                            ? "First Name is required"
                                             : null,
                                       ),
                                     ),
@@ -156,36 +137,75 @@ class LoginPageState extends State<LoginPage> {
                                     ),
                                     child: Center(
                                       child: TextFormField(
-                                        onSaved: (value) => password = value!,
+                                        onSaved: (value) => last_name = value!,
                                         decoration: InputDecoration(
                                           border: InputBorder.none,
-                                          hintText: "Password",
+                                          prefixIcon: Icon(Icons.person,
+                                              color: Colors.grey.shade300),
+                                          hintText: "Last Name",
                                           hintStyle:
                                               TextStyle(color: Colors.grey.shade300),
-                                          prefixIcon: Icon(Icons.lock_outline,
-                                              color: Colors.grey.shade300),
-                                          suffixIcon: IconButton(
-                                            color: Colors.grey,
-                                            icon: _isPasswordHidden
-                                                ? const Icon(
-                                                    Icons.visibility_off,
-                                                  )
-                                                : const Icon(Icons.visibility),
-                                            onPressed: () {
-                                              setState(() {
-                                                _isPasswordHidden =
-                                                    !_isPasswordHidden;
-                                              });
-                                            },
-                                          ),
                                         ),
-                                        obscureText: _isPasswordHidden,
                                         validator: (value) => value == null
-                                            ? "Password wajib diisi"
+                                            ? "Last Name is required"
                                             : null,
                                       ),
                                     ),
                                   ),
+                                  Container(
+                                    padding: const EdgeInsets.all(8.0),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom:
+                                            BorderSide(color: Colors.grey.shade100),
+                                      ),
+                                    ),
+                                    child: SizedBox(
+                                      width: 200,
+                                      child: DropdownButton<String>(
+                                        value: dataAwal,
+                                        items: data
+                                            .map(
+                                              (e) => DropdownMenuItem(
+                                                value: e['data'] as String,
+                                                child: Text("${e['title']}"),
+                                              ),
+                                            )
+                                            .toList(),
+                                        onChanged: (value) {
+                                          setState(() {
+                                            dataAwal = value!;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.all(8.0),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom:
+                                            BorderSide(color: Colors.grey.shade100),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: TextFormField(
+                                        onSaved: (value) => email = value!,
+                                        decoration: InputDecoration(
+                                          border: InputBorder.none,
+                                          prefixIcon: Icon(Icons.mail,
+                                              color: Colors.grey.shade300),
+                                          hintText: "Email",
+                                          hintStyle:
+                                              TextStyle(color: Colors.grey.shade300),
+                                        ),
+                                        validator: (value) => value == null
+                                            ? "Email is required"
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                  
                                 ],
                               ),
                             ),
@@ -202,7 +222,7 @@ class LoginPageState extends State<LoginPage> {
                               child: TextButton(
                                 onPressed: () => submit(),
                                 child: const Text(
-                                  "Login",
+                                  "Save",
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 14,
