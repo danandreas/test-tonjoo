@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_andreas/pages/user_list.dart';
+import 'package:flutter_andreas/pages/web_view.dart';
 // import 'package:http/http.dart' as http;
 // import 'dart:convert';
 // import '../config/url.dart';
@@ -16,13 +18,13 @@ class _HomePageState extends State<HomePage> {
 
   List showWidget = [
     const Center(
-      child: Text("HOME"),
+      child: UserListPage(),
     ),
     const Center(
       child: Text("ADD NEW"),
     ),
     const Center(
-      child: Text("PROFILE"),
+      child: WebviewPage(),
     ),
   ];
 
@@ -35,10 +37,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Dashboard"),
-        backgroundColor: Colors.orange.shade900,
-      ),
       body: showWidget[index],
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.orange.shade900,
@@ -60,8 +58,8 @@ class _HomePageState extends State<HomePage> {
             label: "Add New",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Profil",
+            icon: Icon(Icons.language),
+            label: "Web View",
           ),
         ],
       ),

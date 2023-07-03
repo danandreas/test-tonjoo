@@ -30,15 +30,15 @@ class LoginPageState extends State<LoginPage> {
       body: {'username': username, 'password': password},
     );
     // ignore: avoid_print
-    print(response.statusCode);
-    if (response.statusCode == 200) {
+    print(response);
+    // if (response.statusCode == 200) {
       // final responseData = json.decode(response.body);
        // ignore: use_build_context_synchronously
        Navigator.pushNamed(context, '/home');
-    } else {
+    // } else {
       // ignore: avoid_print
       print("Gagal");
-    }
+    // }
   }
 
   @override
