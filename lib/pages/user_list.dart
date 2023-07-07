@@ -20,7 +20,7 @@ class UserListPageState extends State<UserListPage> {
     var jsonData = json.decode(data.body);
     List<User> users = [];
     for(var u in jsonData){
-      User user = User(u["id"], u["username"], u["gender"], u["last_name"], u["email"], u["avatar"]);
+      User user = User(u["id"] ?? "", u["username"] ?? "", u["gender"] ?? "", u["last_name"] ?? "", u["email"] ?? "", u["avatar"] ?? "");
       users.add(user);
     }
     // ignore: avoid_print
@@ -87,7 +87,8 @@ class User {
   final String gender;
   final String lastname;
   final String email;
-  final String avatar;
+  // ignore: prefer_void_to_null, avoid_init_to_null
+  String? avatar = null;
 
   User(this.id, this.username, this.gender, this.lastname, this.email, this.avatar);
 

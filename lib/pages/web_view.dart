@@ -25,14 +25,14 @@ class _WebviewPageState extends State<WebviewPage> {
           onPageFinished: (String url) {},
           onWebResourceError: (WebResourceError error) {},
           onNavigationRequest: (NavigationRequest request) {
-            if (request.url.startsWith('https://www.youtube.com/')) {
+            if (request.url.startsWith('')) {
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
           },
         ),
       )
-      ..loadRequest(Uri.parse('https://futureskills.id/'));
+      ..loadRequest(Uri.parse('https://futureskills.id'));
   }
 
   @override

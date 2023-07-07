@@ -35,17 +35,23 @@ class LoginPageState extends State<LoginPage> {
         headers: {"Content-Type": "application/json"},
         body: body
     );
+    // ignore: avoid_print
+    print('kesini');
       if (response.statusCode == 200) {
+        // ignore: avoid_print
+        print('masuk');
         const snackbar = SnackBar(
           content: Text('Login successfully!'),
           duration: Duration(seconds: 1),
-          backgroundColor: Colors.greenAccent,
+          backgroundColor: Colors.green,
         );
               // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(snackbar);
         // ignore: use_build_context_synchronously
           Navigator.pushNamed(context, '/home');
       } else {
+        // ignore: avoid_print
+        print('gagal');
         const snackbar = SnackBar(
           content: Text('Login failed!'),
           duration: Duration(seconds: 1),

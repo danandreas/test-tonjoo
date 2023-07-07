@@ -1,6 +1,6 @@
 // ignore_for_file: non_constant_identifier_names
 
-import 'dart:convert';
+// import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/url.dart';
@@ -27,11 +27,9 @@ class UserCreatePageState extends State<UserCreatePage> {
     },
   ];
 
-  late String? dataAwal = '';
-
   @override
   void initState() {
-    dataAwal = data[0]["data"];
+    gender = data[0]["data"];
     super.initState();
   }
   
@@ -43,26 +41,35 @@ class UserCreatePageState extends State<UserCreatePage> {
   bool _isLoading = false;
 
   Future<void> submit() async {
-    // ignore: avoid_print
-    print(username);
-    _isLoading = true;
-    const url = '${Api.baseUrl}login';
-    final response = await http.post(
-      Uri.parse(url),
-      body: {'user': username, 'last_name': last_name, 'email': email, 'gender': gender},
-    );
-    // ignore: avoid_print
-    print(response);
-    if (response.statusCode == 200) {
-      final responseData = json.decode(response.body);
-      if (responseData['success'] == 1) {
-        // ignore: use_build_context_synchronously
-        Navigator.pushNamed(context, '/home');
+     if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      _isLoading = true;
+      // ignore: unused_local_variable
+      const url = '${Api.baseUrl}users';
+      final response = await http.post(
+        Uri.parse(url),
+        body: {'username': username, 'last_name': last_name, 'email': email, 'gender': gender},
+      );
+      if (response.statusCode == 201) {
+        const snackbar = SnackBar(
+            content: Text('User create successfully!'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          );
+                // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(snackbar);
+          // ignore: use_build_context_synchronously
+          Navigator.pushNamed(context, '/home');
+      } else {
+          const snackbar = SnackBar(
+            content: Text('User create failed!'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.redAccent,
+          );
+                // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(snackbar);
       }
-    } else {
-      // ignore: avoid_print
-      print("Gagal");
-    }
+     }
   }
 
   @override
@@ -163,7 +170,7 @@ class UserCreatePageState extends State<UserCreatePage> {
                                     child: SizedBox(
                                       width: 200,
                                       child: DropdownButton<String>(
-                                        value: dataAwal,
+                                        value: gender,
                                         items: data
                                             .map(
                                               (e) => DropdownMenuItem(
@@ -174,7 +181,7 @@ class UserCreatePageState extends State<UserCreatePage> {
                                             .toList(),
                                         onChanged: (value) {
                                           setState(() {
-                                            dataAwal = value!;
+                                            gender = value!;
                                           });
                                         },
                                       ),
