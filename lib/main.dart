@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_andreas/pages/home.dart';
 import 'pages/login.dart';
+import 'package:isar/isar.dart';
 
 
 class MyApp extends StatefulWidget {
@@ -42,7 +43,11 @@ class _MainAppState extends State<MyApp> {
   }
 }
 
-void main() {
+late Isar isar;
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
+
+
 
