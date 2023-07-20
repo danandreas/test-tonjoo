@@ -22,21 +22,4 @@ class LocalUser {
     this.gender,
     this.avatar,
   });
-
-  LocalUser.fromJson(Map<String, dynamic> json)
-      : id = json['id'],
-        username = json['username'],
-        lastName = json['email'],
-        email = json['username'],
-        gender = json['gender'],
-        avatar = json['avatar'];
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'username': username,
-        'lastName': lastName,
-        'email': email,
-        'gender': gender,
-        'avatar': avatar,
-      };
 }
