@@ -3,12 +3,31 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/url.dart';
+import 'package:flutter_andreas/config/local_db.dart';
+import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:get/get.dart';
+import '../local_db/localUser.dart';
 
+// class InitialDbProvider extends GetxController {
+//   Isar? isarUsers;
+
+//   Future<void> initialDb() async {
+//     final dir = await getApplicationDocumentsDirectory();
+//     final isarUser = await Isar.open(
+//       [LocalUserSchema],
+//       name: "db_user",
+//       directory: dir.path,
+//     );
+//     isarUsers = isarUser;
+//   }
+// }
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
   @override
   LoginPageState createState() => LoginPageState();
+  
 }
 
 class LoginPageState extends State<LoginPage> {
@@ -18,6 +37,11 @@ class LoginPageState extends State<LoginPage> {
 
   bool _isPasswordHidden = true;
   bool _isLoading = false;
+
+  void loadInitialDbProvider() async {
+    final initialDbProvider = Get.put(LocalDb());
+    await initialDbProvider.initialDb();
+  }
 
   Future<void> submit() async {
     if (_formKey.currentState!.validate()) {
@@ -33,6 +57,7 @@ class LoginPageState extends State<LoginPage> {
         // ignore: avoid_print
         print('kesini');
         if (response.statusCode == 200) {
+          loadInitialDbProvider();
           // ignore: avoid_print
           print('masuk');
           const snackbar = SnackBar(

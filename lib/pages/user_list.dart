@@ -22,27 +22,31 @@ class UserListPageState extends State<UserListPage> {
 
   UserListModel userListModel = UserListModel();
 
-  makeIsarDB(UserListModel response) async {
+  makeIsarDB(LocalUser response) async {
     LocalDb localDB = Get.find();
     importjson(localDB.isarUsers, response);
   }
-  importjson(Isar isar, UserListModel response) async {
-    await isar.writeTxn(() async {
-      await isar.listUsers.clear();
-    });
+  importjson(Isar isar, LocalUser response) async {
+    // await isar.writeTxn(() async {
+    //   await isar.listUsers.clear();
+    // });
     importContent(response, isar);
   }
 
-  importContent(UserListModel response, Isar isar) async {
+  importContent(LocalUser response, Isar isar) async {
+    final List<LocalUser> users = response as List<LocalUser>;
     await isar.writeTxn(() async {
-      await isar.listUsers.put(ListUser(
-        id: response.id,
-        username: response.username,
-        lastName: response.lastName,
-        gender: response.gender,
-        email: response.email,
-        avatar: response.avatar,
-      ));
+      // await isar.localUsers.put(LocalUser(
+      //     id: response.id,
+      //     username: response.username,
+      //     lastName: response.lastName,
+      //     email: response.email,
+      //     gender: response.gender,
+      //     avatar: response.avatar
+      // ));
+      for (var user in users) {
+        await isar.localUsers.put(user);
+      }
     });
   }
   // ignore: non_constant_identifier_names
@@ -71,10 +75,15 @@ class UserListPageState extends State<UserListPage> {
           users.add(user);
         }
 
-        var data = UserListModel.fromJson(jsonDecode(response.body));
-        userListModel = data;
-        print(data);
-        makeIsarDB(jsonData);
+        // var data = jsonData.map((userJson) => LocalUser.fromJson(userJson)).toList();
+        // makeIsarDB(data);
+        // await makeIsarDB(jsonData.map((userJson) => UserListModel.fromJson(userJson)).toList());
+
+        print(jsonData.map((userJson) => LocalUser.fromJson(userJson)).toList());
+        final List<LocalUser> usersx = jsonData.map((userJson) => LocalUser.fromJson(userJson)).toList();
+        
+        makeIsarDB(usersx as LocalUser);
+
         textLoading = 'Load form server database...';
         return users;
       } else {

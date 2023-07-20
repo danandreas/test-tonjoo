@@ -23,6 +23,7 @@ class UserListModel {
       email: json['email'] as String?,
       gender: json['gender'] as String?,
       avatar: json['avatar'] as String?,
+      
     );
   }
 

@@ -38,6 +38,7 @@ class UserCreatePageState extends State<UserCreatePage> {
   late String? last_name = '';
   late String? email = '';
   late String? gender = '';
+  late String? avatar = 'https://i.postimg.cc/yNWYJT87/avatar.jpg';
   bool _isLoading = false;
 
   Future<void> submit() async {
@@ -48,7 +49,7 @@ class UserCreatePageState extends State<UserCreatePage> {
       const url = '${Api.baseUrl}users';
       final response = await http.post(
         Uri.parse(url),
-        body: {'username': username, 'last_name': last_name, 'email': email, 'gender': gender},
+        body: {'username': username, 'last_name': last_name, 'email': email, 'gender': gender, 'avatar': avatar},
       );
       if (response.statusCode == 201) {
         const snackbar = SnackBar(
