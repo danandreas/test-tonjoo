@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_andreas/config/local_db.dart';
 import 'package:flutter_andreas/local_db/listUser.dart';
@@ -22,28 +24,29 @@ class UserListPageState extends State<UserListPage> {
 
   UserListModel userListModel = UserListModel();
 
-  makeIsarDB(UserListModel response) async {
+  makeIsarDB() async {
     LocalDb localDB = Get.find();
-    importjson(localDB.isarUsers, response);
+    importjson(localDB.isarUsers);
   }
-  importjson(Isar isar, UserListModel response) async {
+  importjson(Isar isar) async {
     await isar.writeTxn(() async {
       await isar.listUsers.clear();
     });
-    importContent(response, isar);
+    importContent( isar);
   }
 
-  importContent(UserListModel response, Isar isar) async {
-    final List<LocalUser> users = response as List<LocalUser>;
+  importContent(Isar isar) async {
     await isar.writeTxn(() async {
-      await isar.localUsers.put(LocalUser(
-          id: response.id,
-          username: response.username,
-          lastName: response.lastName,
-          email: response.email,
-          gender: response.gender,
-          avatar: response.avatar
+      for (var i = 0; i < list_users.length; i++) {
+        await isar.localUsers.put(LocalUser(
+          id: list_users[i].id,
+          username: list_users[i].username,
+          lastName: list_users[i].lastName,
+          email: list_users[i].email,
+          gender: list_users[i].gender,
+          avatar: list_users[i].avatar
       ));
+      }
       // for (var user in users) {
       //   await isar.localUsers.put(user);
       // }
@@ -75,10 +78,12 @@ class UserListPageState extends State<UserListPage> {
         }
 
         // dimasukkan ke isar
-        var data = jsonData.map((userJson) => UserListModel.fromJson(userJson)).toList();
-        makeIsarDB(data);
-
+        var data = await jsonData.map((userJson) => UserListModel.fromJson(userJson)).toList();
+        makeIsarDB();
+        users = data;
         textLoading = 'Load form server database...';
+        // users = data;
+
         return users;
       } else {
         // return getPersonsFromIsar();
@@ -107,7 +112,6 @@ class UserListPageState extends State<UserListPage> {
           list_users.addAll(userList);
           page++;
         });
-      print(list_users.length);
     } catch (e) {
       // getPersonsFromIsar();
     }
@@ -128,9 +132,18 @@ class UserListPageState extends State<UserListPage> {
       ),
       body: Container(
         padding: const EdgeInsets.all(0),
-        child: FutureBuilder(
+        child: 
+        // Center(
+        //   child: ElevatedButton(onPressed: () {
+        // _getUsers(page, limit);
+        //   }, child: Text("get data")),
+        // ),
+        FutureBuilder(
+          initialData: list_users,
           future: _getUsers(page, limit),
           builder: (BuildContext context, AsyncSnapshot snapshot) {
+            print("ini di snapshot");
+            inspect(snapshot.data);
             if (snapshot.data == null) {
               return Center(child: Text(textLoading));
             } else {

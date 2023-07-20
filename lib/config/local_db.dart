@@ -20,9 +20,4 @@ class LocalDb extends GetxController {
     isarUsers = isarUser;
   }
 
-  @override
-  void onInit() {
-    initialDb();
-    super.onInit();
-  }
 }
