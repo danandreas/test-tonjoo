@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_andreas/pages/home.dart';
+import 'package:flutter_andreas/pages/splash.dart';
 import 'pages/login.dart';
 import 'package:isar/isar.dart';
 
@@ -32,11 +33,12 @@ class _MainAppState extends State<MyApp> {
       // home: isAuthenticated ? const LoginPage() : const LoginPage(),
       initialRoute: '/',
       routes: {
-        '/': (context) => const LoginPage(),
+        '/': (context) => const SplashPage(),
+        '/login': (context) => const LoginPage(),
         '/home': (context) => const HomePage(),
       },
       onUnknownRoute: (settings) {
-        return MaterialPageRoute(builder: (context) => const LoginPage());
+        return MaterialPageRoute(builder: (context) => const SplashPage());
       },
 
     );

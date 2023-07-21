@@ -12,6 +12,7 @@ import 'package:flutter_andreas/local_db/localUser.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 
 class UserListPage extends StatefulWidget {
   const UserListPage({Key? key}) : super(key: key);
@@ -23,6 +24,11 @@ class UserListPage extends StatefulWidget {
 class UserListPageState extends State<UserListPage> {
 
   UserListModel userListModel = UserListModel();
+
+  void loadInitialDbProvider() async {
+    final initialDbProvider = Get.put(LocalDb());
+    await initialDbProvider.initialDb();
+  }
 
   makeIsarDB() async {
     LocalDb localDB = Get.find();
@@ -47,9 +53,6 @@ class UserListPageState extends State<UserListPage> {
           avatar: list_users[i].avatar
       ));
       }
-      // for (var user in users) {
-      //   await isar.localUsers.put(user);
-      // }
     });
   }
   // ignore: non_constant_identifier_names
@@ -78,12 +81,11 @@ class UserListPageState extends State<UserListPage> {
         }
 
         // dimasukkan ke isar
-        var data = await jsonData.map((userJson) => UserListModel.fromJson(userJson)).toList();
-        makeIsarDB();
-        users = data;
+        // var data = await jsonData.map((userJson) => UserListModel.fromJson(userJson)).toList();
+        // makeIsarDB();
+        // users = data;
         textLoading = 'Load form server database...';
         // users = data;
-
         return users;
       } else {
         // return getPersonsFromIsar();

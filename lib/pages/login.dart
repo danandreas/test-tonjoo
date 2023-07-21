@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import '../config/url.dart';
 import 'package:flutter_andreas/config/local_db.dart';
@@ -9,19 +10,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
 import '../local_db/localUser.dart';
 
-// class InitialDbProvider extends GetxController {
-//   Isar? isarUsers;
-
-//   Future<void> initialDb() async {
-//     final dir = await getApplicationDocumentsDirectory();
-//     final isarUser = await Isar.open(
-//       [LocalUserSchema],
-//       name: "db_user",
-//       directory: dir.path,
-//     );
-//     isarUsers = isarUser;
-//   }
-// }
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -32,16 +20,14 @@ class LoginPage extends StatefulWidget {
 
 class LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  GetStorage box = GetStorage();
+  
   late String username;
   late String password;
 
   bool _isPasswordHidden = true;
   bool _isLoading = false;
-
-  void loadInitialDbProvider() async {
-    final initialDbProvider = Get.put(LocalDb());
-    await initialDbProvider.initialDb();
-  }
 
   Future<void> submit() async {
     if (_formKey.currentState!.validate()) {
@@ -54,12 +40,13 @@ class LoginPageState extends State<LoginPage> {
 
         var response = await http.post(Uri.parse(url),
             headers: {"Content-Type": "application/json"}, body: body);
+        final jsonData = json.decode(response.body);
         // ignore: avoid_print
-        print('kesini');
         if (response.statusCode == 200) {
           
           // ignore: avoid_print
           print('masuk');
+          box.write('token', jsonData['token']);
           const snackbar = SnackBar(
             content: Text('Login successfully!'),
             duration: Duration(seconds: 1),
@@ -96,7 +83,6 @@ class LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    loadInitialDbProvider();
   }
 
   @override
