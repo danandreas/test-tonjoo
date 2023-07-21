@@ -57,7 +57,7 @@ class LoginPageState extends State<LoginPage> {
         // ignore: avoid_print
         print('kesini');
         if (response.statusCode == 200) {
-          loadInitialDbProvider();
+          
           // ignore: avoid_print
           print('masuk');
           const snackbar = SnackBar(
@@ -91,6 +91,12 @@ class LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(snackbar);
       }
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadInitialDbProvider();
   }
 
   @override
