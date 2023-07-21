@@ -1,35 +1,35 @@
 class UserListModel {
   String? id;
-  String? username;
-  String? lastName;
-  String? email;
-  String? gender;
-  String? avatar;
+  final String username;
+  final String lastName;
+  final String email;
+  final String gender;
+  final String avatar;
 
   UserListModel({
     this.id,
-    this.username,
-    this.lastName,
-    this.email,
-    this.gender,
-    this.avatar,
+    required this.username,
+    required this.lastName,
+    required this.email,
+    required this.gender,
+    required this.avatar,
   });
 
   factory UserListModel.fromJson(Map<String, dynamic> json) {
     return UserListModel(
       id: json['id'],
-      username: json['username'],
-      lastName: json['last_name'],
-      email: json['email'],
-      gender: json['gender'],
-      avatar: json['avatar']      
+      username: json['username'] ?? '',
+      lastName: json['last_name'] ?? '',
+      email: json['email'] ?? '',
+      gender: json['gender'] ?? '',
+      avatar: json['avatar'] ?? ''      
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'username': username,
-    'lastName': lastName,
+    'last_name': lastName,
     'email': email,
     'gender': gender,
     'avatar': avatar,

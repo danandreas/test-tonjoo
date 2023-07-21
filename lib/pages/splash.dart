@@ -35,8 +35,8 @@ class SplashPageState extends State<SplashPage> {
     isarUsers = isarUser;
   }
 
-  void redirectPage() {
-    var dataToken = box.read('token');
+  void redirectPage() async {
+    var dataToken = await box.read('token');
     Future.delayed(const Duration(seconds: 2), () {
       if (dataToken != null) {
         //Get.toNamed('/home');

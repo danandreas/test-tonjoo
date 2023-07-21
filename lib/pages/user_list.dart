@@ -4,15 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_andreas/config/local_db.dart';
 import 'package:flutter_andreas/local_db/listUser.dart';
 import 'package:flutter_andreas/pages/user_list_model.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/url.dart';
 import 'package:flutter_andreas/local_db/localUser.dart';
 import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 
 class UserListPage extends StatefulWidget {
   const UserListPage({Key? key}) : super(key: key);
@@ -22,8 +21,6 @@ class UserListPage extends StatefulWidget {
 }
 
 class UserListPageState extends State<UserListPage> {
-
-  UserListModel userListModel = UserListModel();
 
   void loadInitialDbProvider() async {
     final initialDbProvider = Get.put(LocalDb());
@@ -56,7 +53,7 @@ class UserListPageState extends State<UserListPage> {
     });
   }
   // ignore: non_constant_identifier_names
-  List<User> list_users = [];
+  List<UserListModel> list_users = [];
   int page = 1;
   int limit = 2;
   late String textLoading = 'Loading...';
@@ -68,54 +65,107 @@ class UserListPageState extends State<UserListPage> {
       final jsonData = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        List<User> users = [];
-        for (var u in jsonData) {
-          User user = User(
-              u["id"] ?? "",
-              u["username"] ?? "",
-              u["gender"] ?? "",
-              u["last_name"] ?? "",
-              u["email"] ?? "",
-              u["avatar"] ?? "");
-          users.add(user);
+
+        List<UserListModel> users = [];
+        for (var user in jsonData) {
+          users.add(UserListModel.fromJson(user));
         }
 
         // dimasukkan ke isar
         // var data = await jsonData.map((userJson) => UserListModel.fromJson(userJson)).toList();
         // makeIsarDB();
         // users = data;
+         // dimasukkan ke Hive
+        await syncDataWithHive(users);
         textLoading = 'Load form server database...';
         // users = data;
         return users;
       } else {
-        // return getPersonsFromIsar();
+        return readFromHive();
       }
     } catch (e) {
-      // return getPersonsFromIsar();
+      return readFromHive();
     }
   }
 
-  Future<List<LocalUser>> getPersonsFromIsar() async {
-    var dir = await getApplicationDocumentsDirectory();
-    var isarx = await Isar.open(
-      [LocalUserSchema],
-      directory: dir.path,
-    );
-    final getUserLocal = await isarx.localUsers.where().findAll();
-    await isarx.close();
-    textLoading = 'Load form local database...';
-    return getUserLocal;
+  Future<List<UserListModel>> readFromHive() async {
+    await Hive.initFlutter();
+    final box = await Hive.openBox('userBox');
+    List<UserListModel> users = [];
+
+    for (var i = 0; i < box.length; i++) {
+      final userData = box.getAt(i);
+      if (userData != null) {
+        users.add(UserListModel.fromJson(Map<String, dynamic>.from(userData)));
+      }
+    }
+
+    return users;
   }
+  
+  Future<void> syncDataWithHive(List<UserListModel> data) async {
+    await Hive.initFlutter();
+    final box = await Hive.openBox('userBox');
+    final List<UserListModel> hiveData = await readFromHive();
+
+    // Find new records to add
+    final List<UserListModel> newRecords = data
+        .where((fetchedUser) => !hiveData.any((hiveUser) => hiveUser.id == fetchedUser.id))
+        .toList();
+
+    // Find updated records to update
+    final List<UserListModel> updatedRecords = data
+        .where((fetchedUser) =>
+            hiveData.any((hiveUser) =>
+                hiveUser.id == fetchedUser.id && (hiveUser.username != fetchedUser.username)))
+        .toList();
+
+    // Find deleted records to delete
+    final List<UserListModel> deletedRecords = hiveData
+        .where((hiveUser) => !data.any((fetchedUser) => fetchedUser.id == hiveUser.id))
+        .toList();
+
+    // Perform necessary operations to sync data
+    for (var record in newRecords) {
+      await box.add(record.toJson());
+    }
+
+    for (var record in updatedRecords) {
+      final index = hiveData.indexWhere((user) => user.id == record.id);
+      await box.putAt(index, record.toJson());
+    }
+
+    for (var record in deletedRecords) {
+      final index = hiveData.indexWhere((user) => user.id == record.id);
+      await box.deleteAt(index);
+    }
+  }
+
+  // Future<List<LocalUser>> getPersonsFromIsar() async {
+  //   var dir = await getApplicationDocumentsDirectory();
+  //   var isarx = await Isar.open(
+  //     [LocalUserSchema],
+  //     directory: dir.path,
+  //   );
+  //   final getUserLocal = await isarx.localUsers.where().findAll();
+  //   await isarx.close();
+  //   textLoading = 'Load form local database...';
+  //   return getUserLocal;
+  // }
 
   void _loadUsers() async {
     try {
       final userList = await _getUsers(page, limit);
       setState(() {
-          list_users.addAll(userList);
-          page++;
-        });
+        list_users.addAll(userList);
+        page++;
+      });
     } catch (e) {
       // getPersonsFromIsar();
+      final userLocal = await readFromHive();
+      setState(() {
+        list_users.addAll(userLocal);
+      });
     }
   }
 
@@ -135,16 +185,10 @@ class UserListPageState extends State<UserListPage> {
       body: Container(
         padding: const EdgeInsets.all(0),
         child: 
-        // Center(
-        //   child: ElevatedButton(onPressed: () {
-        // _getUsers(page, limit);
-        //   }, child: Text("get data")),
-        // ),
         FutureBuilder(
           initialData: list_users,
           future: _getUsers(page, limit),
           builder: (BuildContext context, AsyncSnapshot snapshot) {
-            print("ini di snapshot");
             inspect(snapshot.data);
             if (snapshot.data == null) {
               return Center(child: Text(textLoading));
@@ -219,15 +263,3 @@ class UserListPageState extends State<UserListPage> {
   }
 }
 
-class User {
-  final String id;
-  final String username;
-  final String gender;
-  final String lastName;
-  final String email;
-  // ignore: prefer_void_to_null, avoid_init_to_null
-  String? avatar = null;
-
-  User(this.id, this.username, this.gender, this.lastName, this.email,
-      this.avatar);
-}
