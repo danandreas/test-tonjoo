@@ -39,19 +39,9 @@ class SplashPageState extends State<SplashPage> {
     var dataToken = await box.read('token');
     Future.delayed(const Duration(seconds: 2), () {
       if (dataToken != null) {
-        //Get.toNamed('/home');
         Navigator.pushNamed(context, '/home');
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const HomePage()),
-        // );
       } else {
-        //Get.toNamed('/login');
         Navigator.pushNamed(context, '/login');
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const LoginPage()),
-        // );
       }
     });
   }

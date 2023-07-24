@@ -21,6 +21,8 @@ class UserListPage extends StatefulWidget {
 }
 
 class UserListPageState extends State<UserListPage> {
+  final TextEditingController _searchController = TextEditingController();
+  final String _searchResult = '';
 
   void loadInitialDbProvider() async {
     final initialDbProvider = Get.put(LocalDb());
@@ -31,27 +33,28 @@ class UserListPageState extends State<UserListPage> {
     LocalDb localDB = Get.find();
     importjson(localDB.isarUsers);
   }
+
   importjson(Isar isar) async {
     await isar.writeTxn(() async {
       await isar.listUsers.clear();
     });
-    importContent( isar);
+    importContent(isar);
   }
 
   importContent(Isar isar) async {
     await isar.writeTxn(() async {
       for (var i = 0; i < list_users.length; i++) {
         await isar.localUsers.put(LocalUser(
-          id: list_users[i].id,
-          username: list_users[i].username,
-          lastName: list_users[i].lastName,
-          email: list_users[i].email,
-          gender: list_users[i].gender,
-          avatar: list_users[i].avatar
-      ));
+            id: list_users[i].id,
+            username: list_users[i].username,
+            lastName: list_users[i].lastName,
+            email: list_users[i].email,
+            gender: list_users[i].gender,
+            avatar: list_users[i].avatar));
       }
     });
   }
+
   // ignore: non_constant_identifier_names
   List<UserListModel> list_users = [];
   int page = 1;
@@ -61,24 +64,19 @@ class UserListPageState extends State<UserListPage> {
   Future<dynamic> _getUsers(page, limit) async {
     try {
       final url = '${Api.baseUrl}users?page=$page&limit=$limit';
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       final jsonData = json.decode(response.body);
 
       if (response.statusCode == 200) {
-
         List<UserListModel> users = [];
         for (var user in jsonData) {
           users.add(UserListModel.fromJson(user));
         }
 
-        // dimasukkan ke isar
-        // var data = await jsonData.map((userJson) => UserListModel.fromJson(userJson)).toList();
-        // makeIsarDB();
-        // users = data;
-         // dimasukkan ke Hive
+        // dimasukkan ke Hive
         await syncDataWithHive(users);
         textLoading = 'Load form server database...';
-        // users = data;
         return users;
       } else {
         return readFromHive();
@@ -102,30 +100,28 @@ class UserListPageState extends State<UserListPage> {
 
     return users;
   }
-  
+
   Future<void> syncDataWithHive(List<UserListModel> data) async {
     await Hive.initFlutter();
     final box = await Hive.openBox('userBox');
     final List<UserListModel> hiveData = await readFromHive();
 
-    // Find new records to add
     final List<UserListModel> newRecords = data
-        .where((fetchedUser) => !hiveData.any((hiveUser) => hiveUser.id == fetchedUser.id))
-        .toList();
-
-    // Find updated records to update
-    final List<UserListModel> updatedRecords = data
         .where((fetchedUser) =>
-            hiveData.any((hiveUser) =>
-                hiveUser.id == fetchedUser.id && (hiveUser.username != fetchedUser.username)))
+            !hiveData.any((hiveUser) => hiveUser.id == fetchedUser.id))
         .toList();
 
-    // Find deleted records to delete
+    final List<UserListModel> updatedRecords = data
+        .where((fetchedUser) => hiveData.any((hiveUser) =>
+            hiveUser.id == fetchedUser.id &&
+            (hiveUser.username != fetchedUser.username)))
+        .toList();
+
     final List<UserListModel> deletedRecords = hiveData
-        .where((hiveUser) => !data.any((fetchedUser) => fetchedUser.id == hiveUser.id))
+        .where((hiveUser) =>
+            !data.any((fetchedUser) => fetchedUser.id == hiveUser.id))
         .toList();
 
-    // Perform necessary operations to sync data
     for (var record in newRecords) {
       await box.add(record.toJson());
     }
@@ -141,18 +137,6 @@ class UserListPageState extends State<UserListPage> {
     }
   }
 
-  // Future<List<LocalUser>> getPersonsFromIsar() async {
-  //   var dir = await getApplicationDocumentsDirectory();
-  //   var isarx = await Isar.open(
-  //     [LocalUserSchema],
-  //     directory: dir.path,
-  //   );
-  //   final getUserLocal = await isarx.localUsers.where().findAll();
-  //   await isarx.close();
-  //   textLoading = 'Load form local database...';
-  //   return getUserLocal;
-  // }
-
   void _loadUsers() async {
     try {
       final userList = await _getUsers(page, limit);
@@ -161,11 +145,23 @@ class UserListPageState extends State<UserListPage> {
         page++;
       });
     } catch (e) {
-      // getPersonsFromIsar();
       final userLocal = await readFromHive();
       setState(() {
         list_users.addAll(userLocal);
       });
+    }
+  }
+
+  void _goSearch() async {
+
+    await Hive.initFlutter();
+    final box = await Hive.openBox('userBox');
+    final searchResult = box.values.where((person) => person.username == _searchResult).toList();
+
+    if (searchResult.isNotEmpty) {
+      for (var person in searchResult) {
+        list_users = person;
+      }
     }
   }
 
@@ -183,83 +179,140 @@ class UserListPageState extends State<UserListPage> {
         backgroundColor: Colors.orange.shade900,
       ),
       body: Container(
-        padding: const EdgeInsets.all(0),
-        child: 
-        FutureBuilder(
-          initialData: list_users,
-          future: _getUsers(page, limit),
-          builder: (BuildContext context, AsyncSnapshot snapshot) {
-            inspect(snapshot.data);
-            if (snapshot.data == null) {
-              return Center(child: Text(textLoading));
-            } else {
-              return ListView.builder(
-                itemCount: list_users.length + 1,
-                itemBuilder: (context, index) {
-                  if (index < list_users.length) {
-                    final user = list_users[index];
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                        side: const BorderSide(
-                          color: Colors.grey, // Set the desired border color
-                          width: 0.25, // Set the desired border width
-                        ),
+        padding: const EdgeInsets.all(5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+              Card(
+                color: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+                side: const BorderSide(
+                  color:
+                      Colors.transparent,
+                  width: 0.25,
+                ),
+              ),
+              elevation: 0,
+              margin: const EdgeInsets.all(5.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+                        labelText: '',
+                        border: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.transparent),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.transparent),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.transparent),
+                          ),
                       ),
-                      elevation: 0,
-                      margin: const EdgeInsets.all(5.0),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(5.0),
-                        leading: CircleAvatar(
-                          backgroundImage: NetworkImage(user.avatar ?? ''),
-                        ),
-                        title: Text(user.username),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.gender,
-                              style: const TextStyle(
-                                fontSize: 10,
+                      onChanged: (value) {
+                        // You can perform some real-time search here if needed
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    onPressed: _goSearch,
+                    icon: const Icon(Icons.search),
+                    tooltip: 'Search',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 3),
+            Expanded(
+              child: FutureBuilder(
+              initialData: list_users,
+              future: _getUsers(page, limit),
+              builder: (BuildContext context, AsyncSnapshot snapshot) {
+                inspect(snapshot.data);
+                if (snapshot.data == null) {
+                  return Center(child: Text(textLoading));
+                } else {
+                  return ListView.builder(
+                    itemCount: list_users.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index < list_users.length) {
+                        final user = list_users[index];
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            side: const BorderSide(
+                              color:
+                                  Colors.grey, // Set the desired border color
+                              width: 0.25, // Set the desired border width
+                            ),
+                          ),
+                          elevation: 0,
+                          margin: const EdgeInsets.all(5.0),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(5.0),
+                            leading: CircleAvatar(
+                              backgroundImage: NetworkImage(user.avatar ?? ''),
+                            ),
+                            title: Text(user.username),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.gender,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                  ),
+                                ),
+                                Text(
+                                  user.email,
+                                ),
+                              ],
+                            ),
+                            // trailing: const Icon(Icons.clear),
+                          ),
+                        );
+                      } else {
+                        return Container(
+                          width: 200.0,
+                          height: 60.0,
+                          alignment: Alignment.center,
+                          child: ElevatedButton(
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Colors.orange.shade900),
+                              shape: MaterialStateProperty.all<
+                                  RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      50.0), // Set the desired border radius
+                                ),
+                              ),
+                              padding:
+                                  MaterialStateProperty.all<EdgeInsetsGeometry>(
+                                const EdgeInsets.only(
+                                    left: 15,
+                                    right: 15), // Set the desired padding
                               ),
                             ),
-                            Text(
-                              user.email,
-                            ),
-                          ],
-                        ),
-                        // trailing: const Icon(Icons.clear),
-                      ),
-                    );
-                  } else {
-                    return Container(
-                      width: 200.0,
-                      height: 60.0,
-                      alignment: Alignment.center,
-                      child: ElevatedButton(
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all<Color>(Colors.orange.shade900),
-                          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50.0), // Set the desired border radius
-                            ),
+                            onPressed: _loadUsers,
+                            child: const Text('Load More'),
                           ),
-                          padding: MaterialStateProperty.all<EdgeInsetsGeometry>(
-                            const EdgeInsets.only(left: 15, right: 15), // Set the desired padding
-                          ),
-                        ),
-                        onPressed: _loadUsers,
-                        child: const Text('Load More'),
-                      ),
-                    );
-                  }
-                },
-              );
-            }
-          },
+                        );
+                      }
+                    },
+                  );
+                }
+              },
+              )
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
