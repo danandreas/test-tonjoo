@@ -9,7 +9,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/url.dart';
-import 'package:flutter_andreas/local_db/localUser.dart';
+import 'package:flutter_andreas/local_db/user_list_model_hive.dart';
 import 'package:isar/isar.dart';
 import 'package:get/get.dart';
 
@@ -24,39 +24,39 @@ class UserListPageState extends State<UserListPage> {
   final TextEditingController _searchController = TextEditingController();
   final String _searchResult = '';
 
-  void loadInitialDbProvider() async {
-    final initialDbProvider = Get.put(LocalDb());
-    await initialDbProvider.initialDb();
-  }
+  // void loadInitialDbProvider() async {
+  //   final initialDbProvider = Get.put(LocalDb());
+  //   await initialDbProvider.initialDb();
+  // }
 
-  makeIsarDB() async {
-    LocalDb localDB = Get.find();
-    importjson(localDB.isarUsers);
-  }
+  // makeIsarDB() async {
+  //   LocalDb localDB = Get.find();
+  //   importjson(localDB.isarUsers);
+  // }
 
-  importjson(Isar isar) async {
-    await isar.writeTxn(() async {
-      await isar.listUsers.clear();
-    });
-    importContent(isar);
-  }
+  // importjson(Isar isar) async {
+  //   await isar.writeTxn(() async {
+  //     await isar.listUsers.clear();
+  //   });
+  //   importContent(isar);
+  // }
 
-  importContent(Isar isar) async {
-    await isar.writeTxn(() async {
-      for (var i = 0; i < list_users.length; i++) {
-        await isar.localUsers.put(LocalUser(
-            id: list_users[i].id,
-            username: list_users[i].username,
-            lastName: list_users[i].lastName,
-            email: list_users[i].email,
-            gender: list_users[i].gender,
-            avatar: list_users[i].avatar));
-      }
-    });
-  }
+  // importContent(Isar isar) async {
+  //   await isar.writeTxn(() async {
+  //     for (var i = 0; i < list_users.length; i++) {
+  //       await isar.localUsers.put(LocalUser(
+  //           id: list_users[i].id,
+  //           username: list_users[i].username,
+  //           lastName: list_users[i].lastName,
+  //           email: list_users[i].email,
+  //           gender: list_users[i].gender,
+  //           avatar: list_users[i].avatar));
+  //     }
+  //   });
+  // }
 
   // ignore: non_constant_identifier_names
-  List<UserListModel> list_users = [];
+  List<UserListModelHive> list_users = [];
   int page = 1;
   int limit = 2;
   late String textLoading = 'Loading...';
@@ -69,57 +69,72 @@ class UserListPageState extends State<UserListPage> {
       final jsonData = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        List<UserListModel> users = [];
+        List<UserListModelHive> users = [];
         for (var user in jsonData) {
-          users.add(UserListModel.fromJson(user));
+          users.add(UserListModelHive.fromJson(user));
         }
+        // print('jsonnya: $jsonData');
 
         // dimasukkan ke Hive
-        await syncDataWithHive(users);
+        // await syncDataWithHive(users);
         textLoading = 'Load form server database...';
         return users;
-      } else {
-        return readFromHive();
       }
     } catch (e) {
-      return readFromHive();
+      // return await readFromHive();
     }
   }
 
-  Future<List<UserListModel>> readFromHive() async {
+  Future<List<UserListModelHive>> readFromHive() async {
     await Hive.initFlutter();
-    final box = await Hive.openBox('userBox');
-    List<UserListModel> users = [];
+    final box = await Hive.openBox('users');
+    List<UserListModelHive> users = [];
 
     for (var i = 0; i < box.length; i++) {
       final userData = box.getAt(i);
       if (userData != null) {
-        users.add(UserListModel.fromJson(Map<String, dynamic>.from(userData)));
+        users.add(UserListModelHive.fromJson(Map<String, dynamic>.from(userData)));
       }
     }
 
     return users;
+
+    // final box = await Hive.openBox<UserListModel>('userTable');
+    // return box.values.toList();
   }
 
-  Future<void> syncDataWithHive(List<UserListModel> data) async {
-    await Hive.initFlutter();
-    final box = await Hive.openBox('userBox');
-    final List<UserListModel> hiveData = await readFromHive();
+  Future<void> saveToHive(List<UserListModelHive> userList) async {
+    final box = await Hive.openBox<UserListModelHive>('users');
+    await box.clear(); // Clear the box before saving new data.
+    
 
-    final List<UserListModel> newRecords = data
+    for (var user in userList) {
+      box.add(user); // Add each user object to the box.
+    }
+    print('simpan');
+  }
+
+  Future<void> syncDataWithHive(List<UserListModelHive> data) async {
+    await Hive.initFlutter();
+    final box = await Hive.openBox('userTable');
+    final List<UserListModelHive> hiveData = await readFromHive();
+
+    final List<UserListModelHive> newRecords = data
         .where((fetchedUser) =>
             !hiveData.any((hiveUser) => hiveUser.id == fetchedUser.id))
         .toList();
 
-    final List<UserListModel> updatedRecords = data
-        .where((fetchedUser) => hiveData.any((hiveUser) =>
-            hiveUser.id == fetchedUser.id &&
-            (hiveUser.username != fetchedUser.username)))
-        .toList();
+    final List<UserListModelHive> updatedRecords = data
+        .where((fetchedUser) {
+      final hiveUser = hiveData.firstWhere(
+        (hiveUser) => hiveUser.id == fetchedUser.id,
+        // orElse: () => UserListModelHive(), // Provide a default value if not found
+      );
+      return fetchedUser != hiveUser; // Compare the whole object for changes
+    }).toList();
 
-    final List<UserListModel> deletedRecords = hiveData
-        .where((hiveUser) =>
-            !data.any((fetchedUser) => fetchedUser.id == hiveUser.id))
+    final List<UserListModelHive> deletedRecords = hiveData
+        .where((hiveUser) => !data.any((fetchedUser) => fetchedUser.id == hiveUser.id))
         .toList();
 
     for (var record in newRecords) {
@@ -133,29 +148,40 @@ class UserListPageState extends State<UserListPage> {
 
     for (var record in deletedRecords) {
       final index = hiveData.indexWhere((user) => user.id == record.id);
-      await box.deleteAt(index);
+      if (index != -1) {
+        await box.deleteAt(index);
+      }
     }
   }
 
   void _loadUsers() async {
     try {
       final userList = await _getUsers(page, limit);
-      setState(() {
-        list_users.addAll(userList);
-        page++;
-      });
+      if (userList != null  && userList.isNotEmpty) {
+        print('data from server ==> $userList');
+        setState(() {
+          list_users.addAll(userList);
+          page++;
+        });
+        
+        await saveToHive(list_users);
+        // await syncDataWithHive(userList);
+      } else {
+        final List<UserListModelHive> hiveData = await readFromHive();
+        print('data from local ==> $hiveData');
+        setState(() {
+          list_users = hiveData;
+        });
+      }
     } catch (e) {
-      final userLocal = await readFromHive();
-      setState(() {
-        list_users.addAll(userLocal);
-      });
+      // error
     }
   }
 
   void _goSearch() async {
 
     await Hive.initFlutter();
-    final box = await Hive.openBox('userBox');
+    final box = await Hive.openBox('userTable');
     final searchResult = box.values.where((person) => person.username == _searchResult).toList();
 
     if (searchResult.isNotEmpty) {
@@ -258,18 +284,18 @@ class UserListPageState extends State<UserListPage> {
                             leading: CircleAvatar(
                               backgroundImage: NetworkImage(user.avatar ?? ''),
                             ),
-                            title: Text(user.username),
+                            title: Text('${user.username} ${user.lastName}'),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  user.gender,
+                                  user.gender ?? '',
                                   style: const TextStyle(
                                     fontSize: 10,
                                   ),
                                 ),
                                 Text(
-                                  user.email,
+                                  user.email ?? '',
                                 ),
                               ],
                             ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_andreas/pages/home.dart';
 import 'package:flutter_andreas/pages/login.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import '../config/url.dart';
 import 'package:flutter_andreas/config/local_db.dart';
@@ -36,6 +37,8 @@ class SplashPageState extends State<SplashPage> {
   }
 
   void redirectPage() async {
+    final hive = await Hive.openBox('userTable');
+    await hive.clear();
     var dataToken = await box.read('token');
     Future.delayed(const Duration(seconds: 2), () {
       if (dataToken != null) {
