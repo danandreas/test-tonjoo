@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_andreas/local_db/user_list_model_hive.dart';
 import 'package:flutter_andreas/pages/home.dart';
 import 'package:flutter_andreas/pages/splash.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -50,6 +51,8 @@ late Isar isar;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  Hive.registerAdapter(UserListModelHiveAdapter()); // Register the adapter
+  await Hive.openBox<UserListModelHive>('users');
   runApp(const MyApp());
 }
 

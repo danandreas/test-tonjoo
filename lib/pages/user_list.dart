@@ -73,15 +73,11 @@ class UserListPageState extends State<UserListPage> {
         for (var user in jsonData) {
           users.add(UserListModelHive.fromJson(user));
         }
-        // print('jsonnya: $jsonData');
-
-        // dimasukkan ke Hive
-        // await syncDataWithHive(users);
         textLoading = 'Load form server database...';
         return users;
       }
     } catch (e) {
-      // return await readFromHive();
+      return null;
     }
   }
 
@@ -105,7 +101,7 @@ class UserListPageState extends State<UserListPage> {
 
   Future<void> saveToHive(List<UserListModelHive> userList) async {
     final box = await Hive.openBox<UserListModelHive>('users');
-    await box.clear(); // Clear the box before saving new data.
+    // await box.clear(); // Clear the box before saving new data.
     
 
     for (var user in userList) {
@@ -167,10 +163,12 @@ class UserListPageState extends State<UserListPage> {
         await saveToHive(list_users);
         // await syncDataWithHive(userList);
       } else {
-        final List<UserListModelHive> hiveData = await readFromHive();
-        print('data from local ==> $hiveData');
+        textLoading = 'Load from local database...';
+        final userBox = Hive.box<UserListModelHive>('users');
+        final userListx = userBox.values.toList();
+        print('test: $userListx');
         setState(() {
-          list_users = hiveData;
+          list_users.addAll(userListx);
         });
       }
     } catch (e) {
@@ -282,20 +280,20 @@ class UserListPageState extends State<UserListPage> {
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(5.0),
                             leading: CircleAvatar(
-                              backgroundImage: NetworkImage(user.avatar ?? ''),
+                              backgroundImage: NetworkImage(user.avatar),
                             ),
                             title: Text('${user.username} ${user.lastName}'),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  user.gender ?? '',
+                                  user.gender,
                                   style: const TextStyle(
                                     fontSize: 10,
                                   ),
                                 ),
                                 Text(
-                                  user.email ?? '',
+                                  user.email,
                                 ),
                               ],
                             ),
