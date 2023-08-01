@@ -18,11 +18,13 @@ class UserListPage extends StatefulWidget {
 class UserListPageState extends State<UserListPage> {
   final TextEditingController _searchController = TextEditingController();
   final tbUser = UserTable();
-  // final String _searchResult = '';
+  final String _searchResult = '';
 
   // ignore: non_constant_identifier_names
   List<UserListModel> list_users = [];
   int page = 1;
+  int pageSearch = 1;
+  int pageOffline = 0;
   int limit = 2;
   late String textLoading = 'Loading...';
 
@@ -38,14 +40,8 @@ class UserListPageState extends State<UserListPage> {
         List<UserListModel> users = [];
         for (var user in jsonData) {
           UserListModel userModel = UserListModel.fromJson(user);
-          // await dbHelper.insertUser(user); // Pass the userModel directly to the insertUser method
-          // users.add(userModel);
-
-          // Check if the user with the same id already exists in the database before inserting
-          if (!await dbHelper.isUserExist(userModel.id)) {
-            await dbHelper.insertUser(userModel.toMap());
+          await dbHelper.storeOrUpdate(userModel);
             users.add(userModel);
-          }
         }
         textLoading = 'Load form server database...';
         return users;
@@ -69,12 +65,16 @@ class UserListPageState extends State<UserListPage> {
           list_users.addAll(userList);
           page++;
         });
+        print(page);
       } else {
+        
         textLoading = 'Load from local database...';
         final dbHelperz = UserTable();
-        List<UserListModel> users = await dbHelperz.getAllUsers();
+        // await dbHelperz.clearUsersTable();
+        List<UserListModel> users = await dbHelperz.getUsersPaginate(page, limit, '');
         setState(() {
-          list_users = users;
+          // list_users = users;
+          list_users.addAll(users);
           page++;
         });
       }
@@ -86,7 +86,26 @@ class UserListPageState extends State<UserListPage> {
   }
 
   void _goSearch() async {
+    pageSearch = 1;
+    String searchText = _searchController.text;
+    print('cari: $searchText');
+    final dbHelperx = UserTable();
+    List<UserListModel> users = await dbHelperx.getUsersPaginate(pageSearch, limit, searchText);
+    setState(() {
+      list_users.clear();
+      Set<String> uniqueUsernames = {};
+      for (UserListModel user in users) {
+        if (!uniqueUsernames.contains(user.id)) {
+          list_users.add(user);
+          uniqueUsernames.add(user.id);
+        }
+      }
+      pageSearch++;
+    });
+  }
 
+  _delete(String id) {
+    print('delete');
   }
 
   @override
@@ -145,7 +164,7 @@ class UserListPageState extends State<UserListPage> {
                   const SizedBox(width: 16),
                   IconButton(
                     onPressed: _goSearch,
-                    icon: const Icon(Icons.search),
+                    icon: const Icon(Icons.search, color: Colors.grey,),
                     tooltip: 'Search',
                   ),
                 ],
@@ -155,6 +174,7 @@ class UserListPageState extends State<UserListPage> {
             Expanded(
               child: FutureBuilder(
               initialData: list_users,
+              // future: _getUsers(page, limit),
               future: _getUsers(page, limit),
               builder: (BuildContext context, AsyncSnapshot snapshot) {
                 inspect(snapshot.data);
@@ -177,6 +197,7 @@ class UserListPageState extends State<UserListPage> {
                           ),
                           elevation: 0,
                           margin: const EdgeInsets.all(5.0),
+                          color: Colors.transparent,
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(5.0),
                             leading: CircleAvatar(
@@ -197,7 +218,16 @@ class UserListPageState extends State<UserListPage> {
                                 ),
                               ],
                             ),
-                            // trailing: const Icon(Icons.clear),
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.clear,
+                                size: 20.0,
+                                color: Colors.red[300],
+                              ),
+                              onPressed: () {
+                                  _delete(user.id);
+                              },
+                            ),
                           ),
                         );
                       } else {

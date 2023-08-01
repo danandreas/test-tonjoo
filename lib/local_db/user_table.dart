@@ -43,9 +43,19 @@ class UserTable {
     );
   }
 
-  Future<int> insertUser(Map<String, dynamic> task) async {
+  // Future<int> insertUser(Map<String, dynamic> task) async {
+  //   final db = await database;
+  //   return await db.insert(tableName, task);
+  // }
+
+  Future<int> storeOrUpdate(UserListModel user) async {
     final db = await database;
-    return await db.insert(tableName, task);
+    if (await isUserExist(user.id)) {
+      await updateUser(user);
+      return 0;
+    } else {
+      return await db.insert(tableName, user.toMap());
+    }
   }
 
   Future<List<Map<String, dynamic>>> getUsers() async {
@@ -53,13 +63,13 @@ class UserTable {
     return await db.query(tableName);
   }
 
-  Future<int> updateUser(Map<String, dynamic> task) async {
+  Future<void> updateUser(UserListModel user) async {
     final db = await database;
-    return await db.update(
+    await db.update(
       tableName,
-      task,
-      where: '$columnId = ?',
-      whereArgs: [task[columnId]],
+      user.toMap(),
+      where: 'id = ?',
+      whereArgs: [user.id],
     );
   }
 
@@ -72,6 +82,11 @@ class UserTable {
     );
   }
 
+  Future<void> clearUsersTable() async {
+    final db = await database;
+    await db.delete('users');
+  }
+
   Future<bool> isUserExist(String id) async {
     final db = await database;
     final result = await db.query(
@@ -82,11 +97,20 @@ class UserTable {
     return result.isNotEmpty;
   }
 
-  Future<List<UserListModel>> getAllUsers() async {
+  Future<List<UserListModel>> getUsersPaginate(int page, int limit, String searchQuery) async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(UserTable.tableName);
+    List<Map<String, dynamic>> maps;
+    if (searchQuery.isNotEmpty) {
+      maps = await db.query(
+        UserTable.tableName,
+        where: "username LIKE ? OR last_name LIKE ?",
+        whereArgs: ['%$searchQuery%', '%$searchQuery%'],
+      );
+    } else {
+      maps = await db.query(UserTable.tableName);
+    }
 
-    return List.generate(maps.length, (index) {
+    List<UserListModel> users = List.generate(maps.length, (index) {
       return UserListModel(
         id: maps[index][UserTable.columnId],
         username: maps[index][UserTable.columnUsername],
@@ -96,6 +120,39 @@ class UserTable {
         avatar: maps[index][UserTable.columnAvatar],
       );
     });
+
+    int start = (page - 1) * limit;
+    int end = start + limit;
+
+    if (start >= users.length) {
+      // If the start index is beyond the last element, return an empty list
+      return [];
+    }
+
+    if (end > users.length) {
+      // If the end index is beyond the last element, adjust it to the last element
+      end = users.length;
+    }
+
+    return users.sublist(start, end);
+  }
+
+  Future<List<UserListModel>> getAllUsers() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(UserTable.tableName);
+
+    List<UserListModel> users = List.generate(maps.length, (index) {
+      return UserListModel(
+        id: maps[index][UserTable.columnId],
+        username: maps[index][UserTable.columnUsername],
+        lastName: maps[index][UserTable.columnLastName],
+        email: maps[index][UserTable.columnEmail],
+        gender: maps[index][UserTable.columnGender],
+        avatar: maps[index][UserTable.columnAvatar],
+      );
+    });
+
+    return users;
   }
 
 }
