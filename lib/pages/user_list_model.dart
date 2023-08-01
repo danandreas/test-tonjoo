@@ -32,6 +32,17 @@ class UserListModel {
     'last_name': lastName,
     'email': email,
     'gender': gender,
-    'avatar': avatar,
+    'avatar': avatar
   };
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'username': username,
+      'last_name': lastName,
+      'email': email,
+      'gender': gender,
+      'avatar': avatar
+    };
+  }
 }

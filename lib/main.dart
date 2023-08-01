@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_andreas/local_db/user_list_model_hive.dart';
 import 'package:flutter_andreas/pages/home.dart';
 import 'package:flutter_andreas/pages/splash.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'pages/login.dart';
 import 'package:isar/isar.dart';
 
@@ -50,9 +48,9 @@ class _MainAppState extends State<MyApp> {
 late Isar isar;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  Hive.registerAdapter(UserListModelHiveAdapter()); // Register the adapter
-  await Hive.openBox<UserListModelHive>('users');
+  // await Hive.initFlutter();
+  // Hive.registerAdapter(UserListModelHiveAdapter()); // Register the adapter
+  // await Hive.openBox<UserListModelHive>('users');
   runApp(const MyApp());
 }
 

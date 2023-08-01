@@ -12,7 +12,6 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
 import '../local_db/localUser.dart';
-import 'package:sqflite/sqflite.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({Key? key}) : super(key: key);
@@ -28,12 +27,18 @@ class SplashPageState extends State<SplashPage> {
   late Isar isarUsers;
 
   initialDb() async {
-    var db = await openDatabase('local_db.db');
+    final dir = await getApplicationDocumentsDirectory();
+    final isarUser = await Isar.open(
+      [LocalUserSchema],
+      name: "db_user",
+      directory: dir.path,
+    );
+    isarUsers = isarUser;
   }
 
   void redirectPage() async {
-    // final hive = await Hive.openBox('userTable');
-    // await hive.clear();
+    final hive = await Hive.openBox('userTable');
+    await hive.clear();
     Future.delayed(const Duration(seconds: 2), () {
     var dataToken = box.read('token');
       if (dataToken != null) {

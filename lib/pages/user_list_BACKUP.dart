@@ -1,12 +1,17 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_andreas/config/local_db.dart';
+import 'package:flutter_andreas/local_db/listUser.dart';
 import 'package:flutter_andreas/pages/user_list_model.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/url.dart';
-import '../local_db/user_table.dart';
+import 'package:flutter_andreas/local_db/user_list_model_hive.dart';
+import 'package:isar/isar.dart';
+import 'package:get/get.dart';
 
 class UserListPage extends StatefulWidget {
   const UserListPage({Key? key}) : super(key: key);
@@ -17,11 +22,41 @@ class UserListPage extends StatefulWidget {
 
 class UserListPageState extends State<UserListPage> {
   final TextEditingController _searchController = TextEditingController();
-  final tbUser = UserTable();
-  // final String _searchResult = '';
+  final String _searchResult = '';
+
+  // void loadInitialDbProvider() async {
+  //   final initialDbProvider = Get.put(LocalDb());
+  //   await initialDbProvider.initialDb();
+  // }
+
+  // makeIsarDB() async {
+  //   LocalDb localDB = Get.find();
+  //   importjson(localDB.isarUsers);
+  // }
+
+  // importjson(Isar isar) async {
+  //   await isar.writeTxn(() async {
+  //     await isar.listUsers.clear();
+  //   });
+  //   importContent(isar);
+  // }
+
+  // importContent(Isar isar) async {
+  //   await isar.writeTxn(() async {
+  //     for (var i = 0; i < list_users.length; i++) {
+  //       await isar.localUsers.put(LocalUser(
+  //           id: list_users[i].id,
+  //           username: list_users[i].username,
+  //           lastName: list_users[i].lastName,
+  //           email: list_users[i].email,
+  //           gender: list_users[i].gender,
+  //           avatar: list_users[i].avatar));
+  //     }
+  //   });
+  // }
 
   // ignore: non_constant_identifier_names
-  List<UserListModel> list_users = [];
+  List<UserListModelHive> list_users = [];
   int page = 1;
   int limit = 2;
   late String textLoading = 'Loading...';
@@ -34,49 +69,109 @@ class UserListPageState extends State<UserListPage> {
       final jsonData = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        final dbHelper = UserTable();
-        List<UserListModel> users = [];
+        List<UserListModelHive> users = [];
         for (var user in jsonData) {
-          UserListModel userModel = UserListModel.fromJson(user);
-          // await dbHelper.insertUser(user); // Pass the userModel directly to the insertUser method
-          // users.add(userModel);
-
-          // Check if the user with the same id already exists in the database before inserting
-          if (!await dbHelper.isUserExist(userModel.id)) {
-            await dbHelper.insertUser(userModel.toMap());
-            users.add(userModel);
-          }
+          users.add(UserListModelHive.fromJson(user));
         }
         textLoading = 'Load form server database...';
         return users;
-      } else {
-        print('Error else');
-        throw Exception('Failed to load users.');
       }
-
     } catch (e) {
-      print('Error: $e');
       return [];
+    }
+  }
+
+  Future<List<UserListModelHive>> readFromHive() async {
+    await Hive.initFlutter();
+    final box = await Hive.openBox('users');
+    List<UserListModelHive> users = [];
+
+    for (var i = 0; i < box.length; i++) {
+      final userData = box.getAt(i);
+      if (userData != null) {
+        users.add(UserListModelHive.fromJson(Map<String, dynamic>.from(userData)));
+      }
+    }
+
+    return users;
+
+    // final box = await Hive.openBox<UserListModel>('userTable');
+    // return box.values.toList();
+  }
+
+  Future<void> saveToHive(List<UserListModelHive> userList) async {
+    final box = await Hive.openBox<UserListModelHive>('users');
+    // await box.clear(); // Clear the box before saving new data.
+    
+
+    for (var user in userList) {
+      box.add(user); // Add each user object to the box.
+    }
+    print('simpan');
+  }
+
+  Future<void> syncDataWithHive(List<UserListModelHive> data) async {
+    await Hive.initFlutter();
+    final box = await Hive.openBox('userTable');
+    final List<UserListModelHive> hiveData = await readFromHive();
+
+    final List<UserListModelHive> newRecords = data
+        .where((fetchedUser) =>
+            !hiveData.any((hiveUser) => hiveUser.id == fetchedUser.id))
+        .toList();
+
+    final List<UserListModelHive> updatedRecords = data
+        .where((fetchedUser) {
+      final hiveUser = hiveData.firstWhere(
+        (hiveUser) => hiveUser.id == fetchedUser.id,
+        // orElse: () => UserListModelHive(), // Provide a default value if not found
+      );
+      return fetchedUser != hiveUser; // Compare the whole object for changes
+    }).toList();
+
+    final List<UserListModelHive> deletedRecords = hiveData
+        .where((hiveUser) => !data.any((fetchedUser) => fetchedUser.id == hiveUser.id))
+        .toList();
+
+    for (var record in newRecords) {
+      await box.add(record.toJson());
+    }
+
+    for (var record in updatedRecords) {
+      final index = hiveData.indexWhere((user) => user.id == record.id);
+      await box.putAt(index, record.toJson());
+    }
+
+    for (var record in deletedRecords) {
+      final index = hiveData.indexWhere((user) => user.id == record.id);
+      if (index != -1) {
+        await box.deleteAt(index);
+      }
     }
   }
 
   _loadUsers() async {
     try {
       final userList = await _getUsers(page, limit);
-      if (userList != null && userList.isNotEmpty) {
+      if (userList != null  && userList.isNotEmpty) {
         print('data from server ==> $userList');
         setState(() {
           list_users.addAll(userList);
           page++;
         });
+        
+        await saveToHive(list_users);
+        // await syncDataWithHive(userList);
       } else {
         textLoading = 'Load from local database...';
-        final dbHelperz = UserTable();
-        List<UserListModel> users = await dbHelperz.getAllUsers();
+        final userBox = Hive.box<UserListModelHive>('users');
+        final userListx = userBox.values.toList();
+        print('test: $userListx');
         setState(() {
-          list_users = users;
-          page++;
+          list_users.addAll(userListx);
         });
+
+        print("fungsi disini");
       }
     } catch (e) {
       print('error: $e');
@@ -87,6 +182,15 @@ class UserListPageState extends State<UserListPage> {
 
   void _goSearch() async {
 
+    await Hive.initFlutter();
+    final box = await Hive.openBox('userTable');
+    final searchResult = box.values.where((person) => person.username == _searchResult).toList();
+
+    if (searchResult.isNotEmpty) {
+      for (var person in searchResult) {
+        list_users = person;
+      }
+    }
   }
 
   @override
@@ -180,20 +284,20 @@ class UserListPageState extends State<UserListPage> {
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(5.0),
                             leading: CircleAvatar(
-                              backgroundImage: NetworkImage(user.avatar ?? ''),
+                              backgroundImage: NetworkImage(user.avatar),
                             ),
                             title: Text('${user.username} ${user.lastName}'),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  user.gender ?? '',
+                                  user.gender,
                                   style: const TextStyle(
                                     fontSize: 10,
                                   ),
                                 ),
                                 Text(
-                                  user.email ?? '',
+                                  user.email,
                                 ),
                               ],
                             ),
