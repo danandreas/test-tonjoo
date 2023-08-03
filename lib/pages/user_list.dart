@@ -25,14 +25,14 @@ class UserListPageState extends State<UserListPage> {
   int page = 1;
   int pageSearch = 1;
   int pageOffline = 0;
-  int limit = 2;
+  int limit = 10;
   late String textLoading = 'Loading...';
 
   Future<dynamic> _getUsers(page, limit) async {
     try {
       final url = '${Api.baseUrl}users?page=$page&limit=$limit';
       final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 1));
       final jsonData = json.decode(response.body);
 
       if (response.statusCode == 200) {
