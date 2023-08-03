@@ -18,21 +18,20 @@ class UserListPage extends StatefulWidget {
 class UserListPageState extends State<UserListPage> {
   final TextEditingController _searchController = TextEditingController();
   final tbUser = UserTable();
-  final String _searchResult = '';
 
   // ignore: non_constant_identifier_names
   List<UserListModel> list_users = [];
   int page = 1;
   int pageSearch = 1;
   int pageOffline = 0;
-  int limit = 10;
+  int limit = 2;
   late String textLoading = 'Loading...';
 
   Future<dynamic> _getUsers(page, limit) async {
     try {
       final url = '${Api.baseUrl}users?page=$page&limit=$limit';
       final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 1));
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       final jsonData = json.decode(response.body);
 
       if (response.statusCode == 200) {
